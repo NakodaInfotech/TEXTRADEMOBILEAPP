@@ -1,0 +1,36 @@
+name: Custom Build TexTrade
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseIp:
+        description: 'Add the baseIP here'
+        required: true
+        default: '43.239.110.65'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.x'
+      - uses: subosito/flutter-action@v1
+        with:
+          channel: 'stable'
+          flutter-version: '3.19.0' # Specify the Flutter version here
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter build apk --dart-define=baseIP="${{ github.event.inputs.baseIp }}"
+      - name: Copy APK to server
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ftp.topintechsolutions.com
+          username: u595674310.siddhant
+          password: Scoli@123
+          port: 21
+          server-dir: "/textrade/apk/${{ github.event.inputs.baseIp }}/" #server path
+          local-dir: "build/app/outputs/flutter-apk/" #apk path
+          timeout: 600 

@@ -1,0 +1,123 @@
+PODS:
+  - device_info_plus (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - flutter_device_imei (0.0.1):
+    - Flutter
+  - flutter_image_compress_common (1.0.0):
+    - Flutter
+    - Mantle
+    - SDWebImage
+    - SDWebImageWebPCoder
+  - image_picker_ios (0.0.1):
+    - Flutter
+  - libwebp (1.5.0):
+    - libwebp/demux (= 1.5.0)
+    - libwebp/mux (= 1.5.0)
+    - libwebp/sharpyuv (= 1.5.0)
+    - libwebp/webp (= 1.5.0)
+  - libwebp/demux (1.5.0):
+    - libwebp/webp
+  - libwebp/mux (1.5.0):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.5.0)
+  - libwebp/webp (1.5.0):
+    - libwebp/sharpyuv
+  - Mantle (2.2.0):
+    - Mantle/extobjc (= 2.2.0)
+  - Mantle/extobjc (2.2.0)
+  - MTBBarcodeScanner (5.0.11)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - permission_handler_apple (9.3.0):
+    - Flutter
+  - qr_code_scanner (0.2.0):
+    - Flutter
+    - MTBBarcodeScanner
+  - SDWebImage (5.21.0):
+    - SDWebImage/Core (= 5.21.0)
+  - SDWebImage/Core (5.21.0)
+  - SDWebImageWebPCoder (0.14.6):
+    - libwebp (~> 1.0)
+    - SDWebImage/Core (~> 5.17)
+  - share_plus (0.0.1):
+    - Flutter
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - torch_controller (0.1.2):
+    - Flutter
+  - unique_identifier (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
+  - Flutter (from `Flutter`)
+  - flutter_device_imei (from `.symlinks/plugins/flutter_device_imei/ios`)
+  - flutter_image_compress_common (from `.symlinks/plugins/flutter_image_compress_common/ios`)
+  - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - qr_code_scanner (from `.symlinks/plugins/qr_code_scanner/ios`)
+  - share_plus (from `.symlinks/plugins/share_plus/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - torch_controller (from `.symlinks/plugins/torch_controller/ios`)
+  - unique_identifier (from `.symlinks/plugins/unique_identifier/ios`)
+
+SPEC REPOS:
+  trunk:
+    - libwebp
+    - Mantle
+    - MTBBarcodeScanner
+    - SDWebImage
+    - SDWebImageWebPCoder
+
+EXTERNAL SOURCES:
+  device_info_plus:
+    :path: ".symlinks/plugins/device_info_plus/ios"
+  Flutter:
+    :path: Flutter
+  flutter_device_imei:
+    :path: ".symlinks/plugins/flutter_device_imei/ios"
+  flutter_image_compress_common:
+    :path: ".symlinks/plugins/flutter_image_compress_common/ios"
+  image_picker_ios:
+    :path: ".symlinks/plugins/image_picker_ios/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
+  qr_code_scanner:
+    :path: ".symlinks/plugins/qr_code_scanner/ios"
+  share_plus:
+    :path: ".symlinks/plugins/share_plus/ios"
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
+  torch_controller:
+    :path: ".symlinks/plugins/torch_controller/ios"
+  unique_identifier:
+    :path: ".symlinks/plugins/unique_identifier/ios"
+
+SPEC CHECKSUMS:
+  device_info_plus: d668d0dcad87727e865495c472b911b15d7ee26a
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  flutter_device_imei: 426526948bf98aeb10dc08b739777bc00927892f
+  flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
+  image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
+  libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
+  Mantle: c5aa8794a29a022dfbbfc9799af95f477a69b62d
+  MTBBarcodeScanner: f453b33c4b7dfe545d8c6484ed744d55671788cb
+  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
+  qr_code_scanner: d77f94ecc9abf96d9b9b8fc04ef13f611e5a147a
+  SDWebImage: f84b0feeb08d2d11e6a9b843cb06d75ebf5b8868
+  SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
+  share_plus: 4dfe6f47fc3248e89b3eea0be59a95d0433ebe1a
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+  torch_controller: 2d98263e53adb2cdb2fc472452e8c567d0ab99a4
+  unique_identifier: 759d781cf134d96de2161628a1d52014df19599c
+
+PODFILE CHECKSUM: eaa97bf54c7851e21d7c2b85030403a1e7f33306
+
+COCOAPODS: 1.16.2
