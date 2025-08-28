@@ -22,6 +22,7 @@ import 'package:textrade/QRScreen/QrScanner.dart';
 import 'package:textrade/SalePurchaseOrder/PurchaseOrderList.dart';
 import 'package:textrade/SalePurchaseOrder/PurchaseOrderListDetail.dart';
 import 'package:textrade/SalePurchaseOrder/SaleOrderList.dart';
+import 'package:textrade/SalePurchaseOrder/Saleorderverification.dart';
 import 'package:textrade/SalePurchaseOrder/SaleOrderListDetail.dart';
 import 'package:textrade/SalesForm/screen/salesFormScreen.dart';
 import 'package:textrade/SalesForm/screen/search_screen.dart';
@@ -123,6 +124,9 @@ class Routes {
         name: Utility.screenName(Screens.salesInvoiceListScreen),
         page: () => SalesInvoiceList()),
     GetPage(
+        name: Utility.screenName(Screens.saleOrderVerificationScreen),
+        page: () => SalesInvoiceList()),
+    GetPage(
         name: Utility.screenName(Screens.salesInvoiceListDetailScreen),
         page: () => SalesInvoiceDetails()),
     GetPage(
@@ -187,6 +191,7 @@ enum Screens {
   challanScreen,
   gdnChallanDetailsScreen,
   salesInvoiceListScreen,
+  saleOrderVerificationScreen,
   salesInvoiceListDetailScreen,
   purchaseInvoiceListScreen,
   purchaseInvoiceListDetailScreen,

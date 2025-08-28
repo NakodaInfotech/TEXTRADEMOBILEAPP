@@ -54,19 +54,22 @@ class ReportScreen extends StatelessWidget {
                       Get.toNamed(Utility.screenName(Screens.saleOrderScreen));
                     } else if (index == 6) {
                       Get.toNamed(
+                          Utility.screenName(Screens.saleOrderVerificationScreen));
+                    }else if (index == 7) {
+                      Get.toNamed(
                           Utility.screenName(Screens.purchaseOrderScreen));
-                    } else if (index == 7) {
+                    } else if (index == 8) {
                       Get.toNamed(
                           Utility.screenName(Screens.catalogListScreen));
-                    } else if (index == 8) {
-                      Get.toNamed(Utility.screenName(Screens.rackScreen),
-                          arguments: [true]);
                     } else if (index == 9) {
                       Get.toNamed(Utility.screenName(Screens.rackScreen),
-                          arguments: [false]);
+                          arguments: [true]);
                     } else if (index == 10) {
+                      Get.toNamed(Utility.screenName(Screens.rackScreen),
+                          arguments: [false]);
+                    } else if (index == 11) {
                       Get.toNamed(Utility.screenName(Screens.salesForm));
-                    } else if (index == 11 &&
+                    } else if (index == 12 &&
                         AppController.shared.selectedCompany?.GATEPASSENABLED ==
                             true) {
                       Get.toNamed(Utility.screenName(Screens.gatePassScreen));

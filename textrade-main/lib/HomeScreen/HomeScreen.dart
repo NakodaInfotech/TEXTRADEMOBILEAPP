@@ -249,7 +249,7 @@ class HomeScreen extends StatelessWidget {
     return AppBar(
         backgroundColor: appColor,
         foregroundColor: Colors.black,
-        title: const Text("TexTrade"),
+        title: const Text("Tex Trade"),
         actions: [
           GestureDetector(
               onTap: () {

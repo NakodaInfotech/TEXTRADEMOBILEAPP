@@ -15,6 +15,7 @@ class ReportController extends GetxController {
     "Purchase Invoice",
     "Top Reports",
     "Sale Order List",
+    "Sale Order Verification",
     "Purchase Order List",
     "Catalog List",
     // "Stocks",
