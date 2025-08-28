@@ -48,6 +48,9 @@ import 'package:textrade/Parties/Models/RegNameResponse.dart';
 import 'package:textrade/PartyDetail/PartyDetailRequestModel.dart';
 import 'package:textrade/PartyDetail/PartyResponseModel.dart';
 import 'package:textrade/SalePurchaseOrder/PurchaseOrderListModel.dart';
+import 'package:textrade/SalePurchaseOrder/SaleOrderVerificationController.dart';
+import 'package:textrade/SalePurchaseOrder/SaleOrderVerificationScreen.dart';
+import 'package:textrade/SalePurchaseOrder/SaleOrderVerificationModel.dart';
 import 'package:textrade/SalePurchaseOrder/SaleOrderList.dart';
 import 'package:textrade/SalePurchaseOrder/SaleOrderListModel.dart';
 import 'package:textrade/SalesForm/model/barCodeRequest.dart';
@@ -621,6 +624,59 @@ class ApiUtility {
         headers: header);
     return SaleOrderListModel.fromJson(jsonDecode(response.body));
   }
+Future<SaleOrderVerificationModel> getPendingSaleOrder(
+    String nameID,
+    String agentId,
+    String startDateStr,
+    String endDateStr) async {
+  var requestModel = {
+    "FROM": "",
+    "TO": "",
+    "SONO": "",
+    "NAME": nameID,
+    "AGENT": agentId,
+    "From_Date": startDateStr,
+    "To_Date": endDateStr,
+    "YEARID": AppController.shared.selectedDate!.value ?? ""
+  };
+
+  var body = jsonEncode(requestModel);
+  var response = await ApiHandler.shared.postApiCallWithRawData(
+    ApiHandler.saleOrderPendingList, // <-- define this in ApiHandler
+    body,
+    headers: header,
+  );
+
+  return SaleOrderVerificationModel.fromJson(jsonDecode(response.body));
+}
+
+Future<SaleOrderVerificationModel> getEnteredSaleOrder(
+    String nameID,
+    String agentId,
+    String startDateStr,
+    String endDateStr) async {
+  var requestModel = {
+    "FROM": "",
+    "TO": "",
+    "SONO": "",
+    "NAME": nameID,
+    "AGENT": agentId,
+    "From_Date": startDateStr,
+    "To_Date": endDateStr,
+    "YEARID": AppController.shared.selectedDate!.value ?? ""
+  };
+
+  var body = jsonEncode(requestModel);
+  var response = await ApiHandler.shared.postApiCallWithRawData(
+    ApiHandler.saleOrderEnteredList, // <-- define this in ApiHandler
+    body,
+    headers: header,
+  );
+
+  return SaleOrderVerificationModel.fromJson(jsonDecode(response.body));
+}
+
+
 
   Future<PurchaseInvoiceListModel> getPurchaseInvoiceList(
       String from,

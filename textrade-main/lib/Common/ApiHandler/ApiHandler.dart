@@ -74,6 +74,8 @@ class ApiHandler {
   static const topPurchases = "TopPurchases/GetTopPurchases";
   static const stockTaking = "StockTaking/StockTaking";
   static const catalogList = "Catalogue/Catalogue";
+  static const saleOrderEnteredList = "Catalogue/Catalogue";
+  static const saleOrderPendingList = "Catalogue/Catalogue";
 
   Future<http.Response> get(
       String apiName, Map<String, String> queryParams) async {

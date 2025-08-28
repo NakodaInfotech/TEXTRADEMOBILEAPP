@@ -35,7 +35,7 @@ import 'package:textrade/TopSalePurchaseReport/TopReportFilterScreen.dart';
 import 'package:textrade/TopSalePurchaseReport/TopSalePurchaseReportDetail.dart';
 import 'package:textrade/rack/screens/rack_screen.dart';
 import 'package:textrade/two_dimensional_tables/table.dart';
-
+import 'package:textrade/SalePurchaseOrder/SaleOrderVerificationScreen.dart';
 import '../Challan/ChallanGDNScreen.dart';
 import '../CompanyList/CompanyListScreen.dart';
 import '../DateSelectionScreen/DateSelectionScreen.dart';
@@ -155,6 +155,9 @@ class Routes {
     GetPage(
         name: Utility.screenName(Screens.catalogListScreen),
         page: () => CatalogList()),
+    GetPage(
+        name: Utility.screenName(Screens.saleOrderVerificationScreen),
+        page: () => SaleOrderVerificationScreen()),
   ];
 }
 
