@@ -25,6 +25,7 @@ import 'package:textrade/Parties/Models/LedgerMainRequestModel.dart';
 import 'package:textrade/Parties/Models/LedgerMainResponseModel.dart';
 import 'package:textrade/SalePurchaseOrder/SaleOrderListModel.dart';
 import '../Common/Utilies.dart';
+import 'package:textrade/Common/ShareHelper.dart';
 
 class SaleOrderListDetailController extends GetxController {
   PlutoGridStateManager? stateManager;
@@ -216,45 +217,67 @@ class SaleOrderListDetailController extends GetxController {
     return rows;
   }
 
-  void getGeneratedPdfLink() async {
-    // Create a deep copy instead of referencing listOfGDN
+  Future<void> getGeneratedPdfLink() async {
+  Utility.showLoader(title: "Please wait...");
+  try {
+    // Build request payload (same as before)
     PDFSalesOrderGenetarionRequest pdfGenetarionRequest =
         PDFSalesOrderGenetarionRequest(
-            dataList: [listOfGDN.value],
-            mainCompany: MainCompany(
-                panno: AppController.shared.selectedCompany?.pANNO,
-                msme: AppController.shared.selectedCompany?.mSME,
-                bank: AppController.shared.selectedCompany?.bank,
-                account: AppController.shared.selectedCompany?.account,
-                ifsc: AppController.shared.selectedCompany?.ifsc,
-                upi: AppController.shared.selectedCompany?.upi,
-                companyAddress:
-                    "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-                companyName:
-                    AppController.shared.selectedCompany?.cmpname ?? "",
-                GSTNO: AppController.shared.selectedCompany?.gSTIN,
-                State: AppController.shared.selectedCompany?.sTATENAME,
-                StateBenchMark:
-                    AppController.shared.selectedCompany?.sTATEREMARK));
+      dataList: [listOfGDN.value],
+      mainCompany: MainCompany(
+        panno: AppController.shared.selectedCompany?.pANNO,
+        msme: AppController.shared.selectedCompany?.mSME,
+        bank: AppController.shared.selectedCompany?.bank,
+        account: AppController.shared.selectedCompany?.account,
+        ifsc: AppController.shared.selectedCompany?.ifsc,
+        upi: AppController.shared.selectedCompany?.upi,
+        companyAddress:
+            "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+        companyName: AppController.shared.selectedCompany?.cmpname ?? "",
+        GSTNO: AppController.shared.selectedCompany?.gSTIN,
+        State: AppController.shared.selectedCompany?.sTATENAME,
+        StateBenchMark: AppController.shared.selectedCompany?.sTATEREMARK,
+      ),
+    );
 
-    var data = await ApiUtility.shared
-        .generateSaleOrderPDF(pdfGenetarionRequest.toJson());
+    final data =
+        await ApiUtility.shared.generateSaleOrderPDF(pdfGenetarionRequest.toJson());
 
     if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
+      final pdfUrl = data.requirementQuotation ?? "";
+      if (pdfUrl.isEmpty) {
+        Utility.showErrorView("Alert!", "PDF URL is empty.");
+        return;
+      }
+
+      final response = await http.get(Uri.parse(pdfUrl));
       if (response.statusCode == 200) {
         final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Sale Order.pdf');
+        final safeName = 'SaleOrder_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final file = File('${tempDir.path}/$safeName');
+
         await file.writeAsBytes(response.bodyBytes);
 
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
+        if (!await file.exists()) {
+          Utility.showErrorView("Alert!", "Failed to save PDF.");
+          return;
+        }
+
+        // Use centralized helper (handles iOS popover origin & fallback)
+        await ShareHelper.shareFilesUniversal([XFile(file.path)]);
       } else {
-        print('Failed to download PDF');
+        debugPrint('Failed to download PDF. Status: ${response.statusCode}');
+        Utility.showErrorView("Alert!", "Failed to download PDF.");
       }
     } else {
-      Utility.showErrorView("Alert!", "Failed to share...");
+      Utility.showErrorView("Alert!", data.message ?? "Failed to generate PDF.");
     }
+  } catch (e, st) {
+    debugPrint('Exception in getGeneratedPdfLink (SaleOrderDetail): $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  } finally {
+    Utility.hideLoader();
   }
+}
+
 }

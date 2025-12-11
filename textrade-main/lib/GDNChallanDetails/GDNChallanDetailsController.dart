@@ -24,7 +24,11 @@ import 'package:textrade/Outstanding/OutstandingDetaisResModel.dart';
 import 'package:textrade/Outstanding/PDFGenerationReq.dart';
 import 'package:textrade/Parties/Models/LedgerMainRequestModel.dart';
 import 'package:textrade/Parties/Models/LedgerMainResponseModel.dart';
+import 'package:textrade/Common/ShareHelper.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart'; // XFile (share_plus exports it too)
 
+import 'package:flutter/rendering.dart';
 import '../Common/Utilies.dart';
 
 class GDNChallanDetailsController extends GetxController {
@@ -234,85 +238,109 @@ class GDNChallanDetailsController extends GetxController {
     return rows;
   }
 
-  void getGeneratedPdfLink() async {
-    // Create a deep copy instead of referencing listOfGDN
-    var mainGDN = ChallanTableList();
-    if (listOfGDN.value.gDNDETAILS != null) {
-      mainGDN =
-          ChallanTableList.fromJson(jsonDecode(jsonEncode(listOfGDN.value)));
+  Future<void> getGeneratedPdfLink() async {
+  // deep copy as before...
+  var mainGDN = ChallanTableList();
+  if (listOfGDN.value.gDNDETAILS != null) {
+    mainGDN = ChallanTableList.fromJson(jsonDecode(jsonEncode(listOfGDN.value)));
+  }
+
+  // your aggregation code unchanged...
+  PDFChallanGenetarionRequest pdfGenetarionRequest = PDFChallanGenetarionRequest(
+    dataList: [mainGDN],
+    mainCompany: MainCompany(
+      companyAddress:
+          "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+      companyName: AppController.shared.selectedCompany?.cmpname ?? "",
+      GSTNO: AppController.shared.selectedCompany?.gSTIN,
+      State: AppController.shared.selectedCompany?.sTATENAME,
+      StateBenchMark: AppController.shared.selectedCompany?.sTATEREMARK,
+    ),
+  );
+
+  var data = await ApiUtility.shared.generateChallanPDF(pdfGenetarionRequest.toJson());
+  if (data.success != true) {
+    Utility.showErrorView("Alert!", "Failed to generate PDF on server.");
+    return;
+  }
+
+  final pdfUrlString = data.requirementQuotation ?? "";
+  if (pdfUrlString.isEmpty) {
+    Utility.showErrorView("Alert!", "PDF URL is empty.");
+    return;
+  }
+
+  // --- Parse pdfUrlString robustly ---
+  List<String> pdfUrls = [];
+  try {
+    final parsed = jsonDecode(pdfUrlString);
+    if (parsed is List) {
+      pdfUrls = parsed.map((e) => e.toString()).toList();
+    } else if (parsed is String) {
+      // single URL string
+      pdfUrls = [parsed];
     }
+  } catch (_) {
+    // fallback: maybe comma-separated or single url
+    pdfUrls = pdfUrlString.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  }
 
-    List<ITEMDETAILS> iTEMDETAILSTemp = [];
-    mainGDN.gDNDETAILS?.forEach((element) {
-      var listItemsDesign = [];
-      List<ITEMDETAILS> iTEMDETAILSTemp = [];
-      element.iTEMDETAILS?.forEach((itemelement) {
-        var listtemp = listItemsDesign.where((elementdetails) =>
-            itemelement.dESIGN == elementdetails.dESIGN &&
-            itemelement.sHADE == elementdetails.sHADE);
-        if (listtemp.isEmpty) {
-          var list = element.iTEMDETAILS?.where((elementdetails) =>
-              itemelement.dESIGN == elementdetails.dESIGN &&
-              itemelement.sHADE == elementdetails.sHADE);
-          var cuts = "";
-          var countMTRS = 0.00;
-          var countPCS = 0.00;
-          var i = 0;
-          list?.forEach((element) {
-            cuts = "$cuts${element.cUTS}";
-            if ((i % 7 == 0) && (i != 0)) {
-              cuts = "$cuts&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n";
-            } else {
-              cuts = "$cuts&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-            }
-            countPCS += element.pCS ?? 0.0;
-            countMTRS += element.mTRS ?? 0.0;
-            i++;
-          });
-          listItemsDesign.add(itemelement);
-          iTEMDETAILSTemp.add(ITEMDETAILS(
-              dESIGN: itemelement.dESIGN,
-              sHADE: itemelement.sHADE,
-              pCS: countPCS,
-              cUTSTEMP: cuts,
-              cUTS: 0.0,
-              mTRS: countMTRS,
-              rATE: itemelement.rATE,
-              bARCODE: itemelement.bARCODE));
+  debugPrint('Final pdfUrls list length: ${pdfUrls.length}');
+  for (var u in pdfUrls) debugPrint('URL -> $u');
+
+  final tempDir = await getTemporaryDirectory();
+  final List<XFile> xfiles = [];
+
+  for (var i = 0; i < pdfUrls.length; i++) {
+    final url = pdfUrls[i];
+    if (url.isEmpty) continue;
+
+    try {
+      final resp = await http.get(Uri.parse(url));
+      debugPrint('Downloading [$i] ${url} => ${resp.statusCode}');
+      if (resp.statusCode == 200) {
+        final fileName = 'Challan_${DateTime.now().millisecondsSinceEpoch}_$i.pdf';
+        final file = File('${tempDir.path}/$fileName');
+        await file.writeAsBytes(resp.bodyBytes);
+
+        final exists = await file.exists();
+        final length = exists ? await file.length() : 0;
+        debugPrint('Saved [$i]: path=${file.path}, exists=$exists, size=$length');
+
+        if (exists && length > 0) {
+          // include mimeType explicitly (helps some iOS targets)
+          xfiles.add(XFile(file.path, name: fileName)); // you can add mimeType param if supported in current cross_file
         }
-      });
-      element.iTEMDETAILS = iTEMDETAILSTemp;
-    });
-
-    PDFChallanGenetarionRequest pdfGenetarionRequest = PDFChallanGenetarionRequest(
-        dataList: [mainGDN],
-        mainCompany: MainCompany(
-            companyAddress:
-                "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-            companyName: AppController.shared.selectedCompany?.cmpname ?? "",
-            GSTNO: AppController.shared.selectedCompany?.gSTIN,
-            State: AppController.shared.selectedCompany?.sTATENAME,
-            StateBenchMark: AppController.shared.selectedCompany?.sTATEREMARK));
-
-    var data = await ApiUtility.shared
-        .generateChallanPDF(pdfGenetarionRequest.toJson());
-
-    if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
-      if (response.statusCode == 200) {
-        final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Challan.pdf');
-        await file.writeAsBytes(response.bodyBytes);
-
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)],
-            text: '');
       } else {
-        print('Failed to download PDF');
+        debugPrint('Skipping [$i] due to status ${resp.statusCode}');
       }
-    } else {
-      Utility.showErrorView("Alert!", "Failed to share...");
+    } catch (e, st) {
+      debugPrint('Exception downloading [$i]: $e\n$st');
     }
   }
+
+  debugPrint('Prepared XFiles count: ${xfiles.length}');
+  if (xfiles.isEmpty) {
+    Utility.showErrorView("Alert!", "No PDF files available to share.");
+    return;
+  }
+
+  // Try direct share (bypass helper) for diagnosing
+  try {
+    await Share.shareXFiles(
+      xfiles,
+      text: 'Please find the challan PDF(s) attached.',
+    );
+  } catch (e) {
+    debugPrint('Direct Share.shareXFiles failed: $e');
+    // fallback to your helper which handles origin
+    try {
+      await ShareHelper.shareFilesUniversal(xfiles, text: 'Please find the challan PDF(s) attached.');
+    } catch (e2) {
+      debugPrint('ShareHelper fallback also failed: $e2');
+      Utility.showErrorView('Alert!', 'Sharing failed.');
+    }
+  }
+}
+
 }

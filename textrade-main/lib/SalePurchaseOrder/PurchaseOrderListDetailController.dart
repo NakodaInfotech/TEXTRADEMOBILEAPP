@@ -25,6 +25,7 @@ import 'package:textrade/Parties/Models/LedgerMainRequestModel.dart';
 import 'package:textrade/Parties/Models/LedgerMainResponseModel.dart';
 import 'package:textrade/SalePurchaseOrder/PurchaseOrderListModel.dart';
 import '../Common/Utilies.dart';
+import 'package:textrade/Common/ShareHelper.dart';
 
 class PurchaseOrderListDetailController extends GetxController {
   PlutoGridStateManager? stateManager;
@@ -197,45 +198,71 @@ class PurchaseOrderListDetailController extends GetxController {
     return rows;
   }
 
-  void getGeneratedPdfLink() async {
-    // Create a deep copy instead of referencing listOfGDN
-    PDFPurchaseOrderGenetarionRequest pdfGenetarionRequest =
-        PDFPurchaseOrderGenetarionRequest(
-            dataList: [listOfGDN.value],
-            mainCompany: MainCompany(
-                panno: AppController.shared.selectedCompany?.pANNO,
-                msme: AppController.shared.selectedCompany?.mSME,
-                bank: AppController.shared.selectedCompany?.bank,
-                account: AppController.shared.selectedCompany?.account,
-                ifsc: AppController.shared.selectedCompany?.ifsc,
-                upi: AppController.shared.selectedCompany?.upi,
-                companyAddress:
-                    "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-                companyName:
-                    AppController.shared.selectedCompany?.cmpname ?? "",
-                GSTNO: AppController.shared.selectedCompany?.gSTIN,
-                State: AppController.shared.selectedCompany?.sTATENAME,
-                StateBenchMark:
-                    AppController.shared.selectedCompany?.sTATEREMARK));
+    Future<void> getGeneratedPdfLink() async {
+    Utility.showLoader(title: "Please wait...");
+    try {
+      // Build request (same as before, just wrapped in try/finally)
+      PDFPurchaseOrderGenetarionRequest pdfGenetarionRequest =
+          PDFPurchaseOrderGenetarionRequest(
+        dataList: [listOfGDN.value],
+        mainCompany: MainCompany(
+          panno: AppController.shared.selectedCompany?.pANNO,
+          msme: AppController.shared.selectedCompany?.mSME,
+          bank: AppController.shared.selectedCompany?.bank,
+          account: AppController.shared.selectedCompany?.account,
+          ifsc: AppController.shared.selectedCompany?.ifsc,
+          upi: AppController.shared.selectedCompany?.upi,
+          companyAddress:
+              "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+          companyName: AppController.shared.selectedCompany?.cmpname ?? "",
+          GSTNO: AppController.shared.selectedCompany?.gSTIN,
+          State: AppController.shared.selectedCompany?.sTATENAME,
+          StateBenchMark: AppController.shared.selectedCompany?.sTATEREMARK,
+        ),
+      );
 
-    var data = await ApiUtility.shared
-        .generatePurchaseOrderPDF(pdfGenetarionRequest.toJson());
+      final data = await ApiUtility.shared
+          .generatePurchaseOrderPDF(pdfGenetarionRequest.toJson());
 
-    if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
-      if (response.statusCode == 200) {
-        final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Purchase Order.pdf');
-        await file.writeAsBytes(response.bodyBytes);
+      if (data.success == true) {
+        final pdfUrl = data.requirementQuotation ?? "";
+        if (pdfUrl.isEmpty) {
+          Utility.showErrorView("Alert!", "PDF URL is empty.");
+          return;
+        }
 
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
+        final response = await http.get(Uri.parse(pdfUrl));
+        if (response.statusCode == 200) {
+          final tempDir = await getTemporaryDirectory();
+
+          final safeName =
+              'PurchaseOrderDetail_${DateTime.now().millisecondsSinceEpoch}.pdf';
+          final file = File('${tempDir.path}/$safeName');
+
+          await file.writeAsBytes(response.bodyBytes);
+
+          if (!await file.exists()) {
+            Utility.showErrorView("Alert!", "Failed to save PDF.");
+            return;
+          }
+
+          // ✅ iOS + Android safe share
+          await ShareHelper.shareFilesUniversal([XFile(file.path)]);
+        } else {
+          debugPrint(
+              'Failed to download purchase order detail PDF. Status: ${response.statusCode}');
+          Utility.showErrorView("Alert!", "Failed to download PDF.");
+        }
       } else {
-        print('Failed to download PDF');
+        Utility.showErrorView(
+            "Alert!", data.message ?? "Failed to generate PDF.");
       }
-    } else {
-      Utility.showErrorView("Alert!", "Failed to share...");
+    } catch (e, st) {
+      debugPrint('Exception in PurchaseOrderListDetail getGeneratedPdfLink: $e\n$st');
+      Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+    } finally {
+      Utility.hideLoader();
     }
   }
+
 }

@@ -35,10 +35,10 @@ PODS:
   - qr_code_scanner (0.2.0):
     - Flutter
     - MTBBarcodeScanner
-  - SDWebImage (5.21.0):
-    - SDWebImage/Core (= 5.21.0)
-  - SDWebImage/Core (5.21.0)
-  - SDWebImageWebPCoder (0.14.6):
+  - SDWebImage (5.21.5):
+    - SDWebImage/Core (= 5.21.5)
+  - SDWebImage/Core (5.21.5)
+  - SDWebImageWebPCoder (0.15.0):
     - libwebp (~> 1.0)
     - SDWebImage/Core (~> 5.17)
   - share_plus (0.0.1):
@@ -100,8 +100,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/unique_identifier/ios"
 
 SPEC CHECKSUMS:
-  device_info_plus: d668d0dcad87727e865495c472b911b15d7ee26a
-  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  device_info_plus: 335f3ce08d2e174b9fdc3db3db0f4e3b1f66bd89
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_device_imei: 426526948bf98aeb10dc08b739777bc00927892f
   flutter_image_compress_common: 1697a328fd72bfb335507c6bca1a65fa5ad87df1
   image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
@@ -111,13 +111,13 @@ SPEC CHECKSUMS:
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   qr_code_scanner: d77f94ecc9abf96d9b9b8fc04ef13f611e5a147a
-  SDWebImage: f84b0feeb08d2d11e6a9b843cb06d75ebf5b8868
-  SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
-  share_plus: 4dfe6f47fc3248e89b3eea0be59a95d0433ebe1a
+  SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
+  SDWebImageWebPCoder: 0e06e365080397465cc73a7a9b472d8a3bd0f377
+  share_plus: 011d6fb4f9d2576b83179a3a5c5e323202cdabcf
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   torch_controller: 2d98263e53adb2cdb2fc472452e8c567d0ab99a4
   unique_identifier: 759d781cf134d96de2161628a1d52014df19599c
 
-PODFILE CHECKSUM: eaa97bf54c7851e21d7c2b85030403a1e7f33306
+PODFILE CHECKSUM: 7e06743148e37b4f04d6a77ce94b5b9663f24021
 
 COCOAPODS: 1.16.2
