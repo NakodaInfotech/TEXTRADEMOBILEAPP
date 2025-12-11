@@ -314,6 +314,41 @@ class OutStandingDetailController extends GetxController {
     isApiLoading.value = false;
     Utility.hideLoader();
   }
+  /// Universal helper to share an XFile on iOS/Android safely.
+/// Always uses a safe non-zero sharePositionOrigin for iOS and falls back.
+Future<void> _shareFileUniversal(XFile xFile) async {
+  try {
+    BuildContext? ctx = Get.context;
+    Rect origin;
+
+    if (ctx != null) {
+      try {
+        final media = MediaQuery.of(ctx);
+        origin = Rect.fromLTWH(
+          (media.size.width / 2) - 50,
+          (media.size.height / 2) - 50,
+          100,
+          100,
+        );
+      } catch (_) {
+        origin = const Rect.fromLTWH(100, 100, 200, 200);
+      }
+    } else {
+      origin = const Rect.fromLTWH(100, 100, 200, 200);
+    }
+
+    // Primary attempt: provide origin (required on iPad, safe for iPhone)
+    await Share.shareXFiles([xFile], sharePositionOrigin: origin, text: '');
+  } catch (e) {
+    debugPrint('Share with origin failed: $e — trying fallback without origin');
+    try {
+      await Share.shareXFiles([xFile], text: '');
+    } catch (e2) {
+      debugPrint('Fallback share also failed: $e2');
+      Utility.showErrorView("Alert!", "Unable to share file.");
+    }
+  }
+}
 
   List<PlutoRow> buildRows() {
     isApiLoading.value = true;
@@ -387,75 +422,114 @@ class OutStandingDetailController extends GetxController {
     }
   }
 
-  void getGeneratedPdfLink() async {
-    List<OutTable> tableToForm = [];
-    for (var e in partyDetailResponse.value.table ?? []) {
-      tableToForm.add(
-        OutTable(
-            dATE: Utility.convertDateFormateDDMMYYYY(e.dATE ?? ""),
-            tYPE: e.tYPE,
-            bILLINITIALS: e.bILLINITIALS,
-            aGENT: isLedger ? e.aGENT : e.nAME,
-            bILLAMT: e.bILLAMT,
-            rECDAMT: e.rECDAMT,
-            bALANCE: e.bALANCE,
-            dAYS: e.dAYS),
-      );
-    }
-    var companyName = AppController.shared.selectedCompany?.cmpname ?? "";
-    PDFGenetarionRequest pdfGenetarionRequest = PDFGenetarionRequest(
-        bank: AppController.shared.selectedCompany?.bank,
-        account: AppController.shared.selectedCompany?.account,
-        ifsc: AppController.shared.selectedCompany?.ifsc,
-        upi: AppController.shared.selectedCompany?.upi,
-        partyName: ledger.nAME ?? "",
-        date: selectedDate.value,
-        pdfTable: tableToForm,
-        pdfTable1: partyDetailResponse.value.table1,
-        companyName: companyName,
-        companyAddress:
-            "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-        titles: isLedger
-            ? [
-                "Date",
-                "Type",
-                "Bill No",
-                "Agent",
-                "Bill Amt",
-                "Recd Amt",
-                "Balance",
-                "Days"
-              ]
-            : [
-                "Date",
-                "Type",
-                "Bill No",
-                "Party",
-                "Bill Amt",
-                "Recd Amt",
-                "Balance",
-                "Days"
-              ]);
+  Future<void> getGeneratedPdfLink() async {
+  List<OutTable> tableToForm = [];
+  for (var e in partyDetailResponse.value.table ?? []) {
+    tableToForm.add(
+      OutTable(
+        dATE: Utility.convertDateFormateDDMMYYYY(e.dATE ?? ""),
+        tYPE: e.tYPE,
+        bILLINITIALS: e.bILLINITIALS,
+        aGENT: isLedger ? e.aGENT : e.nAME,
+        bILLAMT: e.bILLAMT,
+        rECDAMT: e.rECDAMT,
+        bALANCE: e.bALANCE,
+        dAYS: e.dAYS,
+      ),
+    );
+  }
 
+  var companyName = AppController.shared.selectedCompany?.cmpname ?? "";
+  PDFGenetarionRequest pdfGenetarionRequest = PDFGenetarionRequest(
+    bank: AppController.shared.selectedCompany?.bank,
+    account: AppController.shared.selectedCompany?.account,
+    ifsc: AppController.shared.selectedCompany?.ifsc,
+    upi: AppController.shared.selectedCompany?.upi,
+    partyName: ledger.nAME ?? "",
+    date: selectedDate.value,
+    pdfTable: tableToForm,
+    pdfTable1: partyDetailResponse.value.table1,
+    companyName: companyName,
+    companyAddress:
+        "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+    titles: isLedger
+        ? [
+            "Date",
+            "Type",
+            "Bill No",
+            "Agent",
+            "Bill Amt",
+            "Recd Amt",
+            "Balance",
+            "Days"
+          ]
+        : [
+            "Date",
+            "Type",
+            "Bill No",
+            "Party",
+            "Bill Amt",
+            "Recd Amt",
+            "Balance",
+            "Days"
+          ],
+  );
+
+  try {
     var data =
         await ApiUtility.shared.generatePDF(pdfGenetarionRequest.toJson());
+
     if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
+      final pdfUrl = data.requirementQuotation ?? "";
+      if (pdfUrl.isEmpty) {
+        debugPrint('❌ PDF URL empty');
+        Utility.showErrorView("Alert!", "Failed to generate PDF link.");
+        return;
+      }
+
+      debugPrint('🔹 PDF URL: $pdfUrl');
+      final response = await http.get(Uri.parse(pdfUrl));
+
       if (response.statusCode == 200) {
         final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/${ledger.nAME}.pdf');
-        await file.writeAsBytes(response.bodyBytes);
 
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
+        // Safe filename
+        final safeName = (ledger.nAME ?? "Outstanding").replaceAll("/", "_");
+        final file = File('${tempDir.path}/$safeName.pdf');
+
+        await file.writeAsBytes(response.bodyBytes);
+        debugPrint('✅ PDF saved at: ${file.path}');
+
+        if (!await file.exists()) {
+          debugPrint('❌ File not found after write');
+          Utility.showErrorView("Alert!", "PDF not found for sharing.");
+          return;
+        }
+
+        final xFile = XFile(
+          file.path,
+          mimeType: 'application/pdf',
+          name: '$safeName.pdf',
+        );
+
+        // Use the centralized universal share helper
+        await _shareFileUniversal(xFile);
+
+        debugPrint('✅ Share attempt finished');
       } else {
-        print('Failed to download PDF');
+        debugPrint('❌ Failed to download PDF. Status: ${response.statusCode}');
+        Utility.showErrorView("Alert!", "Failed to download PDF.");
       }
     } else {
       Utility.showErrorView("Alert!", "Failed to share...");
     }
+  } catch (e, st) {
+    debugPrint('❌ Exception in getGeneratedPdfLink: $e');
+    debugPrint(st.toString());
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
   }
+}
+
 }
 
 class CustomToolTip extends StatelessWidget {

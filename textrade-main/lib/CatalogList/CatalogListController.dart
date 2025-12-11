@@ -18,7 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:textrade/Common/Utilies.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:textrade/SalesForm/model/searchModel.dart';
-
+import 'package:textrade/Common/ShareHelper.dart';
 import '../Common/Utilies.dart';
 
 class CatalogListController extends GetxController {
@@ -108,27 +108,66 @@ class CatalogListController extends GetxController {
     Utility.hideLoader();
   }
 
-  void getGeneratedPdfLink() async {
-    Utility.showLoader(title: "Loading");
-    var fileList = <XFile>[];
-    challanGDNModel.value.table
-        ?.where((element) => element.isSelected == true)
-        .forEach((element) async {
-      final response = await http.get(Uri.parse(element.fILENAME ?? ""));
+  Future<void> getGeneratedPdfLink() async {
+  Utility.showLoader(title: "Loading");
+  try {
+    final fileList = <XFile>[];
 
-      if (response.statusCode == 200) {
-        final tempDir = await getTemporaryDirectory();
-        final file = File(
-            '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await file.writeAsBytes(response.bodyBytes);
-        fileList.add(XFile(file.path));
-        sharefile(fileList);
-        // Share the PDF file
-      } else {
-        print('Failed to download images');
+    final selectedItems = challanGDNModel.value.table
+        ?.where((element) => element.isSelected == true)
+        .toList();
+
+    if (selectedItems == null || selectedItems.isEmpty) {
+      Utility.hideLoader();
+      Utility.showErrorView("Alert!", "No items selected to share.");
+      return;
+    }
+
+    for (var element in selectedItems) {
+      final url = element.fILENAME;
+      if (url == null || url.trim().isEmpty) {
+        debugPrint('Skipping empty filename for element: ${element.toString()}');
+        continue;
       }
-    });
+
+      try {
+        final uri = Uri.tryParse(url);
+        if (uri == null) {
+          debugPrint('Invalid URL, skipping: $url');
+          continue;
+        }
+
+        final response = await http.get(uri);
+        if (response.statusCode == 200) {
+          final tempDir = await getTemporaryDirectory();
+          final filePath = '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+          fileList.add(XFile(file.path));
+        } else {
+          debugPrint('Failed to download image. Status: ${response.statusCode} URL: $url');
+        }
+      } catch (e, st) {
+        debugPrint('Exception while downloading $url : $e\n$st');
+      }
+    }
+
+    if (fileList.isEmpty) {
+      Utility.showErrorView("Alert!", "Failed to download images.");
+      return;
+    }
+
+    // All files downloaded — share them using the shared helper that handles iOS.
+    await ShareHelper.shareFilesUniversal(fileList);
+  } catch (e, st) {
+    debugPrint('Unexpected error in getGeneratedPdfLink: $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  } finally {
+    // ensure loader hidden always
+    Utility.hideLoader();
   }
+}
+
 
   Future<void> sharefile(List<XFile> fileList) async {
     if (challanGDNModel.value.table
@@ -136,7 +175,7 @@ class CatalogListController extends GetxController {
             .length ==
         fileList.length) {
       Utility.hideLoader();
-      await Share.shareXFiles(fileList);
+       await ShareHelper.shareFilesUniversal(fileList);
     }
   }
 }

@@ -24,6 +24,7 @@ import 'package:textrade/Outstanding/OutstandingDetaisResModel.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pluto_grid/pluto_grid.dart';
+import 'package:textrade/Common/ShareHelper.dart';
 
 import '../Common/Utilies.dart';
 import '../Filter/FilterModel/GoDownListModel.dart';
@@ -580,65 +581,90 @@ class ItemsController extends GetxController {
     searchgoDownListModel.refresh();
   }
 
-  void getGeneratedPdfLink() async {
+  Future<void> getGeneratedPdfLink() async {
+  Utility.showLoader(title: "Loading");
+  try {
     List<OutTable> tableToForm = [];
     var itemSize = items.value.table?.length ?? 0;
     for (int i = 0; i < itemSize; i++) {
       var e = items.value.table![i];
-      items.value.table![i].id = i;
       var row = OutTable(
-          dATE: e.uNIT,
-          tYPE: e.iTEMNAME,
-          bILLINITIALS: e.dESIGNNO,
-          aGENT: e.cOLOR,
-          bILLAMT: 0,
-          rECDAMT: e.pCS,
-          bALANCE: e.mTRS,
-          dAYS: 0);
+        dATE: e.uNIT,
+        tYPE: e.iTEMNAME,
+        bILLINITIALS: e.dESIGNNO,
+        aGENT: e.cOLOR,
+        bILLAMT: 0,
+        rECDAMT: e.pCS,
+        bALANCE: e.mTRS,
+        dAYS: 0,
+      );
       tableToForm.add(row);
     }
+
     var companyName = AppController.shared.selectedCompany?.cmpname ?? "";
     PDFGenetarionRequest pdfGenetarionRequest = PDFGenetarionRequest(
-        bank: AppController.shared.selectedCompany?.bank,
-        account: AppController.shared.selectedCompany?.account,
-        ifsc: AppController.shared.selectedCompany?.ifsc,
-        upi: AppController.shared.selectedCompany?.upi,
-        partyName: "STOCK",
-        date:
-            "${AppController.shared.selectedDate!.text} to ${AppController.shared.selectedDate!.text1}",
-        pdfTable: tableToForm,
-        pdfTable1: [],
-        companyName: companyName,
-        companyAddress:
-            "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-        titles: [
-          "",
-          "ITEM NAME",
-          "DESIGN NO",
-          "COLOR",
-          "UNIT",
-          "PCS",
-          "MTRS",
-          ""
-        ]);
+      bank: AppController.shared.selectedCompany?.bank,
+      account: AppController.shared.selectedCompany?.account,
+      ifsc: AppController.shared.selectedCompany?.ifsc,
+      upi: AppController.shared.selectedCompany?.upi,
+      partyName: "STOCK",
+      date:
+          "${AppController.shared.selectedDate!.text} to ${AppController.shared.selectedDate!.text1}",
+      pdfTable: tableToForm,
+      pdfTable1: [],
+      companyName: companyName,
+      companyAddress:
+          "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+      titles: [
+        "",
+        "ITEM NAME",
+        "DESIGN NO",
+        "COLOR",
+        "UNIT",
+        "PCS",
+        "MTRS",
+        ""
+      ],
+    );
 
     var data =
         await ApiUtility.shared.generatePDF(pdfGenetarionRequest.toJson());
+
     if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
+      final pdfUrl = data.requirementQuotation ?? "";
+      if (pdfUrl.isEmpty) {
+        Utility.showErrorView("Alert!", "PDF URL is empty.");
+        return;
+      }
+
+      final response = await http.get(Uri.parse(pdfUrl));
       if (response.statusCode == 200) {
         final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Stock.pdf');
+
+        final fileName = 'Stock_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(response.bodyBytes);
 
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
+        if (!await file.exists()) {
+          Utility.showErrorView("Alert!", "Failed to save PDF.");
+          return;
+        }
+
+        // Use centralized helper that handles iOS popover origin and fallbacks
+        await ShareHelper.shareFilesUniversal([XFile(file.path)]);
       } else {
-        print('Failed to download PDF');
+        debugPrint('Failed to download PDF. Status: ${response.statusCode}');
+        Utility.showErrorView("Alert!", "Failed to download PDF.");
       }
     } else {
       Utility.showErrorView("Alert!", "Failed to share...");
     }
+  } catch (e, st) {
+    debugPrint('Exception in getGeneratedPdfLink: $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  } finally {
+    Utility.hideLoader();
   }
+}
+
 }

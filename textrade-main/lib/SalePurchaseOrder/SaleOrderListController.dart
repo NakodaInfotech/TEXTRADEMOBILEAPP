@@ -16,6 +16,7 @@ import 'package:textrade/SalesForm/model/searchModel.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:textrade/Common/Utilies.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:textrade/Common/ShareHelper.dart';
 
 import '../Common/Utilies.dart';
 
@@ -144,49 +145,66 @@ class SaleOrderListController extends GetxController {
     });
   }
 
-  void getGeneratedPdfLink() async {
-    PDFSalesOrderGenetarionRequest pdfGenetarionRequest =
-        PDFSalesOrderGenetarionRequest(
-            dataList: challanGDNModel
-                .value.table
-                ?.where(
-                    (mainElement) => (mainElement.isSelected ?? false) == true)
-                .toList(),
-            mainCompany:
-                MainCompany(
-                    panno: AppController.shared.selectedCompany?.bank,
-                    msme: AppController.shared.selectedCompany?.mSME,
-                    bank: AppController.shared.selectedCompany?.bank,
-                    account: AppController.shared.selectedCompany?.account,
-                    ifsc: AppController.shared.selectedCompany?.ifsc,
-                    upi: AppController.shared.selectedCompany?.upi,
-                    companyAddress:
-                        "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
-                    companyName:
-                        AppController.shared.selectedCompany?.cmpname ?? "",
-                    GSTNO: AppController.shared.selectedCompany?.gSTIN,
-                    State: AppController.shared.selectedCompany?.sTATENAME,
-                    StateBenchMark:
-                        AppController.shared.selectedCompany?.sTATEREMARK));
+  Future<void> getGeneratedPdfLink() async {
+  Utility.showLoader(title: "Please wait...");
+  try {
+    PDFSalesOrderGenetarionRequest pdfGenetarionRequest = PDFSalesOrderGenetarionRequest(
+      dataList: challanGDNModel.value.table
+          ?.where((mainElement) => (mainElement.isSelected ?? false) == true)
+          .toList(),
+      mainCompany: MainCompany(
+        panno: AppController.shared.selectedCompany?.bank,
+        msme: AppController.shared.selectedCompany?.mSME,
+        bank: AppController.shared.selectedCompany?.bank,
+        account: AppController.shared.selectedCompany?.account,
+        ifsc: AppController.shared.selectedCompany?.ifsc,
+        upi: AppController.shared.selectedCompany?.upi,
+        companyAddress:
+            "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+        companyName: AppController.shared.selectedCompany?.cmpname ?? "",
+        GSTNO: AppController.shared.selectedCompany?.gSTIN,
+        State: AppController.shared.selectedCompany?.sTATENAME,
+        StateBenchMark: AppController.shared.selectedCompany?.sTATEREMARK,
+      ),
+    );
 
-    var data = await ApiUtility.shared
-        .generateSaleOrderPDF(pdfGenetarionRequest.toJson());
+    final data = await ApiUtility.shared.generateSaleOrderPDF(pdfGenetarionRequest.toJson());
 
     if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
+      final pdfUrl = data.requirementQuotation ?? "";
+      if (pdfUrl.isEmpty) {
+        Utility.showErrorView("Alert!", "PDF URL is empty.");
+        return;
+      }
+
+      final response = await http.get(Uri.parse(pdfUrl));
       if (response.statusCode == 200) {
         final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Sale Order.pdf');
+        final safeName = 'SaleOrder_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final file = File('${tempDir.path}/$safeName');
+
         await file.writeAsBytes(response.bodyBytes);
 
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
+        if (!await file.exists()) {
+          Utility.showErrorView("Alert!", "Failed to save PDF.");
+          return;
+        }
+
+        // Use centralized helper (handles iOS popover origin + fallback)
+        await ShareHelper.shareFilesUniversal([XFile(file.path)]);
       } else {
-        print('Failed to download PDF');
+        debugPrint('Failed to download PDF. Status: ${response.statusCode}');
+        Utility.showErrorView("Alert!", "Failed to download PDF.");
       }
     } else {
-      Utility.showErrorView("Alert!", "Failed to share...");
+      Utility.showErrorView("Alert!", data.message ?? "Failed to generate PDF.");
     }
+  } catch (e, st) {
+    debugPrint('Exception in getGeneratedPdfLink (SaleOrder): $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  } finally {
+    Utility.hideLoader();
   }
+}
+
 }

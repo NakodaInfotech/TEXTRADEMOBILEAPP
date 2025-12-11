@@ -13,6 +13,12 @@ import 'package:textrade/Parties/Models/LedgerMainResponseModel.dart';
 import 'package:textrade/Parties/party_controller/PartyController.dart';
 import 'package:textrade/PartyDetail/PartyDetailRequestModel.dart';
 import 'package:textrade/PartyDetail/PartyResponseModel.dart';
+import 'package:textrade/Common/ShareHelper.dart';
+import 'package:share_plus/share_plus.dart'; // already present but keep it
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+
 
 class PartyDetailController extends GetxController {
   var partyDetailResponse = PartyResponseModel().obs;
@@ -219,30 +225,128 @@ class PartyDetailController extends GetxController {
     }
   }
 
-  void getGeneratedPdfLink() async {
-    if (GetPlatform.isAndroid) {
-      String value;
+Future<void> getGeneratedPdfLink() async {
+  Utility.showLoader(title: "Please Wait...");
+  try {
+    // 1) Try native generation (Android) — keep this for Android clients that rely on native method
+    String? nativeFilePath;
+    try {
+      // build data same as you did earlier
       var companyDetails = AppController.shared.selectedCompany;
+      var data = {
+        "pdf_data": jsonEncode(partyDetailResponse.value),
+        "company_detail": jsonEncode(companyDetails?.toJson()),
+        "party_name": ledger.nAME ?? "",
+        "pdf_date": selectedDate.value.replaceAll('to', '-'),
+      };
 
-      try {
-        Utility.showLoader(title: "Please Wait...");
-        var data = {
-          "pdf_data": jsonEncode(partyDetailResponse.value),
-          "company_detail": jsonEncode(companyDetails?.toJson()),
-          "party_name":ledger.nAME!,
-          "pdf_date": selectedDate.value.replaceAll('to', '-'),
-        };
-        value = await platform.invokeMethod("getGeneratedLedgerPdfLocation", data);
-        print(value);
-        Utility.hideLoader();
-        var sid = [XFile(value)];
+      // attempt call (may throw on iOS if native iOS method not implemented)
+      final result =
+          await platform.invokeMethod<String>("getGeneratedLedgerPdfLocation", data);
 
-        Share.shareXFiles(sid);
-      } catch (e) {
-        print(e);
+      if (result != null && result.isNotEmpty) {
+        nativeFilePath = result;
+      }
+    } catch (e) {
+      // native call failed / not implemented — we'll fallback to server below
+      debugPrint('Native method failed or not available: $e');
+      nativeFilePath = null;
+    }
+
+    // 2) If native gave us a file path, use it; otherwise fallback to server generation
+    if (nativeFilePath != null && nativeFilePath.isNotEmpty) {
+      final file = File(nativeFilePath);
+      if (await file.exists()) {
+        await ShareHelper.shareFilesUniversal([XFile(file.path)]);
+        return;
+      } else {
+        debugPrint('Native file path returned but file not found: $nativeFilePath');
+        // fallthrough to server generation
       }
     }
+
+    // 3) Server-side fallback: prepare a request similar to other controllers
+    // Build a simple table representation from partyDetailResponse (server expects 'table' JSON)
+    // We will reuse PDFGenetarionRequest model and map PartyResponseModel rows into generic OutTable-like entries.
+    List<Map<String, dynamic>> tableForServer = [];
+    for (var r in partyDetailResponse.value.table1 ?? []) {
+      tableForServer.add({
+        "DATE": r.dATE ?? "",
+        "TYPE": r.aCCTYPE ?? "",
+        "BILLINITIALS": r.bILLNO ?? "",
+        "AGENT": r.dESC ?? "",
+        "BILLAMT": 0,
+        "RECDAMT": r.aMT ?? 0,
+        "BALANCE": 0,
+        "DAYS": 0
+      });
+    }
+
+    final companyName = AppController.shared.selectedCompany?.cmpname ?? "";
+    // If your backend expects PDFGenetarionRequest structure, use that JSON shape:
+    final payload = {
+      "Date": selectedDate.value,
+      "partyName": ledger.nAME ?? "",
+      "companyName": companyName,
+      "companyAddress":
+          "${AppController.shared.selectedCompany?.add1}\n${AppController.shared.selectedCompany?.add2}",
+      "bank": AppController.shared.selectedCompany?.bank ?? "",
+      "account": AppController.shared.selectedCompany?.account ?? "",
+      "ifsc": AppController.shared.selectedCompany?.ifsc ?? "",
+      "upi": AppController.shared.selectedCompany?.upi ?? "",
+      "table": tableForServer,
+      "table1": [], // if you need totals, push them here
+      "titles": [
+        "Date",
+        "AccType",
+        "Bill No",
+        "Desc",
+        "Bill Amt",
+        "Recd Amt",
+        "Balance",
+        "Days"
+      ]
+    };
+
+    // call server generate PDF (adjust to your ApiUtility method if different)
+    final data = await ApiUtility.shared.generatePDF(payload);
+
+    if (data.success == true) {
+      final pdfUrl = data.requirementQuotation ?? "";
+      if (pdfUrl.isEmpty) {
+        Utility.showErrorView("Alert!", "PDF URL is empty.");
+        return;
+      }
+
+      final response = await http.get(Uri.parse(pdfUrl));
+      if (response.statusCode == 200) {
+        final tempDir = await getTemporaryDirectory();
+        final safeName = 'Ledger_${ledger.nAME ?? "party"}.pdf'
+            .replaceAll(RegExp(r'[\\/:\*\?"<>\|]'), '_');
+        final file = File('${tempDir.path}/$safeName');
+        await file.writeAsBytes(response.bodyBytes);
+
+        if (!await file.exists()) {
+          Utility.showErrorView("Alert!", "Failed to save PDF.");
+          return;
+        }
+
+        await ShareHelper.shareFilesUniversal([XFile(file.path)]);
+      } else {
+        debugPrint('Failed to download PDF. Status: ${response.statusCode}');
+        Utility.showErrorView("Alert!", "Failed to download PDF.");
+      }
+    } else {
+      Utility.showErrorView("Alert!", data.message ?? "Failed to generate PDF.");
+    }
+  } catch (e, st) {
+    debugPrint('Exception in getGeneratedPdfLink: $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  } finally {
+    Utility.hideLoader();
   }
+}
+
 }
 
 class CustomToolTip extends StatelessWidget {

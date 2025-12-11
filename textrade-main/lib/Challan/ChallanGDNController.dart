@@ -33,6 +33,7 @@ import 'package:textrade/Outstanding/OutstandingDetaisResModel.dart';
 import 'package:textrade/Outstanding/PDFGenerationReq.dart';
 import 'package:textrade/Parties/Models/LedgerMainRequestModel.dart';
 import 'package:textrade/Parties/Models/LedgerMainResponseModel.dart';
+import 'package:textrade/Common/ShareHelper.dart';
 
 import '../Common/Utilies.dart';
 
@@ -229,20 +230,42 @@ class ChallanGDNController extends GetxController {
         .generateChallanPDF(pdfGenetarionRequest.toJson());
 
     if (data.success == true) {
-      final response =
-          await http.get(Uri.parse(data.requirementQuotation ?? ""));
-      if (response.statusCode == 200) {
-        final tempDir = await getTemporaryDirectory();
-        final file = File('${tempDir.path}/Challan.pdf');
-        await file.writeAsBytes(response.bodyBytes);
-
-        // Share the PDF file
-        await Share.shareXFiles([XFile(file.path)], text: '');
-      } else {
-        print('Failed to download PDF');
-      }
-    } else {
-      Utility.showErrorView("Alert!", "Failed to share...");
+  try {
+    final pdfUrl = data.requirementQuotation ?? "";
+    if (pdfUrl.isEmpty) {
+      Utility.showErrorView("Alert!", "PDF URL is empty.");
+      return;
     }
+
+    final response = await http.get(Uri.parse(pdfUrl));
+    if (response.statusCode == 200) {
+      final tempDir = await getTemporaryDirectory();
+
+      // make filename safe
+      final fileName = 'Challan_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File('${tempDir.path}/$fileName');
+
+      await file.writeAsBytes(response.bodyBytes);
+
+      if (!await file.exists()) {
+        Utility.showErrorView("Alert!", "Failed to save PDF.");
+        return;
+      }
+
+      // Use shared helper which handles iOS popover origin and fallbacks
+      await ShareHelper.shareFilesUniversal([XFile(file.path)]);
+
+    } else {
+      debugPrint('Failed to download PDF. Status: ${response.statusCode}');
+      Utility.showErrorView("Alert!", "Failed to download PDF.");
+    }
+  } catch (e, st) {
+    debugPrint('Exception while downloading/sharing PDF: $e\n$st');
+    Utility.showErrorView("Alert!", "Something went wrong while sharing.");
+  }
+} else {
+  Utility.showErrorView("Alert!", "Failed to share...");
+}
+
   }
 }

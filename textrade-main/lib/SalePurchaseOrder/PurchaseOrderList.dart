@@ -43,12 +43,13 @@ class PurchaseOrderList extends StatelessWidget {
       })),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(8.0),
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: appColor,
             ),
             onPressed: () {
+              print('✅ Share button tapped');
               purchaseOrderListController.getGeneratedPdfLink();
             },
             child: const Text(
