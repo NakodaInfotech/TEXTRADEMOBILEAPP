@@ -190,7 +190,6 @@ enum Screens {
   challanScreen,
   gdnChallanDetailsScreen,
   salesInvoiceListScreen,
-  saleOrderVerificationScreen,
   salesInvoiceListDetailScreen,
   purchaseInvoiceListScreen,
   purchaseInvoiceListDetailScreen,
@@ -202,4 +201,5 @@ enum Screens {
   commonFilter,
   topReportsFilter,
   catalogListScreen,
+  saleOrderVerificationScreen
 }

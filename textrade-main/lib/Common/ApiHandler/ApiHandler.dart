@@ -76,6 +76,10 @@ class ApiHandler {
   static const catalogList = "Catalogue/Catalogue";
   static const saleOrderEnteredList = "Catalogue/Catalogue";
   static const saleOrderPendingList = "Catalogue/Catalogue";
+  static const OrderVerificationEnteredList = "SaleOrderVerification/OrderVerification";
+  static const OrderVerificationPendingList = "SaleOrderVerification/OrderVerification";
+    static const UpdateOrderVerificationEnteredList = "UpdateSaleOrderVerification/UpdateOrderVerification";
+  static const UpdateOrderVerificationPendingList = "UpdateSaleOrderVerification/UpdateOrderVerification";
 
   Future<http.Response> get(
       String apiName, Map<String, String> queryParams) async {
@@ -98,6 +102,7 @@ class ApiHandler {
       var baseUrl = await StorageManager.readData(baseUrlVal) ?? "";
       var uri = Uri.http(baseUrl, addUrl + apiName);
       print(uri);
+      print(params);
 
       final response = await http.post(uri, body: params, headers: headers);
       responseJson = _response(response);

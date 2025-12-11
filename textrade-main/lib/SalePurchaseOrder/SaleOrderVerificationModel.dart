@@ -1,41 +1,59 @@
+import 'package:get/get.dart';
+import 'package:get/get_rx/get_rx.dart';
+import 'package:get/get_rx/src/rx_types/rx_types.dart';
+import 'package:get/state_manager.dart';
+
+// Main model with RxList for GetX reactivity
 class SaleOrderVerificationModel {
-  List<SaleOrderVerificationData>? table;
+  RxList<SaleOrderVerificationData> table;
 
-  SaleOrderVerificationModel({this.table});
+  SaleOrderVerificationModel({RxList<SaleOrderVerificationData>? table})
+      : table = table ?? <SaleOrderVerificationData>[].obs;
 
-  SaleOrderVerificationModel.fromJson(Map<String, dynamic> json) {
-    if (json['Table'] != null) {
-      table = <SaleOrderVerificationData>[];
-      json['Table'].forEach((v) {
-        table!.add(SaleOrderVerificationData.fromJson(v));
-      });
-    }
+  factory SaleOrderVerificationModel.fromJson(Map<String, dynamic> json) {
+    var list = (json['Table'] as List<dynamic>? ?? []);
+    var tableList = list
+        .map((e) => SaleOrderVerificationData.fromJson(e))
+        .toList()
+        .obs;
+    return SaleOrderVerificationModel(table: tableList);
   }
 }
 
+// Data model with mutable isSelected (for checkbox)
 class SaleOrderVerificationData {
-  String? sONO;
-  String? pARTYNAME;
-  String? aGENTNAME;
-  double? tOTALQTY;
-  double? tOTALMTRS;
-  String? sHIPTO;
+  final int? sono;
+  final String? name;
+  final String? agentName;
+  final String? itemName;
+  final String? designName;
+  final String? color;
+  final String? type;
+
+  RxBool isSelected;
 
   SaleOrderVerificationData({
-    this.sONO,
-    this.pARTYNAME,
-    this.aGENTNAME,
-    this.tOTALQTY,
-    this.tOTALMTRS,
-    this.sHIPTO,
-  });
+    this.sono,
+    this.name,
+    this.agentName,
+    this.itemName,
+    this.designName,
+    this.color,
+    this.type,
+    bool isSelected = false,
+  }) : this.isSelected = isSelected.obs;
 
-  SaleOrderVerificationData.fromJson(Map<String, dynamic> json) {
-    sONO = json['SONO'];
-    pARTYNAME = json['PARTYNAME'];
-    aGENTNAME = json['AGENTNAME'];
-    tOTALQTY = double.tryParse(json['TOTALQTY'].toString());
-    tOTALMTRS = double.tryParse(json['TOTALMTRS'].toString());
-    sHIPTO = json['SHIPTO'];
+  factory SaleOrderVerificationData.fromJson(Map<String, dynamic> json) {
+    return SaleOrderVerificationData(
+      sono: json['SONO'] as int?,
+      name: json['PARTYNAME'] as String?,
+      agentName: json['AGENTNAME'] as String?,
+      itemName: json['ITEMNAME'] as String?,
+      designName: json['DESIGN']?.toString(),
+      color: json['COLOR'] as String?,
+      type: json['Type'] as String?,
+      isSelected: false,
+    );
   }
 }
+

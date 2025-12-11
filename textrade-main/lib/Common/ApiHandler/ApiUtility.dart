@@ -627,22 +627,27 @@ class ApiUtility {
 Future<SaleOrderVerificationModel> getPendingSaleOrder(
     String nameID,
     String agentId,
+    String itemname,
+    String Design,
+    String color,
     String startDateStr,
-    String endDateStr) async {
+    String  endDateStr,
+    String Type) async {
   var requestModel = {
-    "FROM": "",
-    "TO": "",
-    "SONO": "",
     "NAME": nameID,
     "AGENT": agentId,
+    "ITEMNAME": itemname,
+    "DesignName": Design,
+    "color": color,
     "From_Date": startDateStr,
     "To_Date": endDateStr,
+    "TYPE": Type,
     "YEARID": AppController.shared.selectedDate!.value ?? ""
   };
 
   var body = jsonEncode(requestModel);
   var response = await ApiHandler.shared.postApiCallWithRawData(
-    ApiHandler.saleOrderPendingList, // <-- define this in ApiHandler
+    ApiHandler.OrderVerificationPendingList, // <-- define this in ApiHandler
     body,
     headers: header,
   );
@@ -651,32 +656,59 @@ Future<SaleOrderVerificationModel> getPendingSaleOrder(
 }
 
 Future<SaleOrderVerificationModel> getEnteredSaleOrder(
-    String nameID,
+     String nameID,
     String agentId,
+    String itemname,
+    String Design,
+    String color,
     String startDateStr,
-    String endDateStr) async {
+    String endDateStr,
+    String Type) async {
   var requestModel = {
-    "FROM": "",
-    "TO": "",
-    "SONO": "",
     "NAME": nameID,
     "AGENT": agentId,
+    "ITEMNAME": itemname,
+    "DesignName": Design,
+    "color": color,
     "From_Date": startDateStr,
     "To_Date": endDateStr,
+    "TYPE": Type,
     "YEARID": AppController.shared.selectedDate!.value ?? ""
   };
 
   var body = jsonEncode(requestModel);
   var response = await ApiHandler.shared.postApiCallWithRawData(
-    ApiHandler.saleOrderEnteredList, // <-- define this in ApiHandler
+    ApiHandler.OrderVerificationEnteredList, // <-- define this in ApiHandler
     body,
     headers: header,
   );
 
   return SaleOrderVerificationModel.fromJson(jsonDecode(response.body));
 }
+Future<SaleOrderVerificationModel> verifySaleOrders(
+  String sonoString, String type
+) async {
+  var requestModel = {
+    "SONO": sonoString,
+    "YearID": AppController.shared.selectedDate!.value ?? "",
+    "Type": type
+  };
 
+  var body = jsonEncode(requestModel);
 
+  // Choose API endpoint based on type
+  String apiUrl = type == "Pending"
+      ? ApiHandler.UpdateOrderVerificationPendingList
+      : ApiHandler.UpdateOrderVerificationEnteredList;
+
+  var response = await ApiHandler.shared.postApiCallWithRawData(
+    apiUrl,
+    body,
+    headers: header,
+  );
+
+  return SaleOrderVerificationModel.fromJson(jsonDecode(response.body));
+}
 
   Future<PurchaseInvoiceListModel> getPurchaseInvoiceList(
       String from,
